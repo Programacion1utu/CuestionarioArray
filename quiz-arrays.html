@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz_Arrays.java</title>
+<style>
+  :root{
+    --bg: #16171f;
+    --panel: #1d1f2b;
+    --panel-2: #23253383;
+    --border: #2d2f42;
+    --text: #d7d9e8;
+    --muted: #6f7390;
+    --amber: #ffb454;
+    --amber-dim: #ffb45433;
+    --green: #7ee787;
+    --green-dim: #7ee78722;
+    --red: #ff7b72;
+    --red-dim: #ff7b7222;
+    --blue: #7dd3fc;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Fira Code", monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  body{
+    padding: 32px 16px 80px;
+    display:flex;
+    justify-content:center;
+  }
+  .window{
+    width:100%;
+    max-width: 760px;
+  }
+  .titlebar{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 10px 14px;
+    display:flex;
+    align-items:center;
+    gap: 14px;
+  }
+  .dots{ display:flex; gap:7px; }
+  .dot{ width:11px; height:11px; border-radius:50%; }
+  .dot.r{ background:#ff5f56; }
+  .dot.y{ background:#ffbd2e; }
+  .dot.g{ background:#27c93f; }
+  .tab{
+    font-size: 12.5px;
+    color: var(--muted);
+    border-bottom: 2px solid var(--amber);
+    padding-bottom: 10px;
+    margin-bottom: -11px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .tab .filename{ color: var(--text); }
+  .tab .dirty{ color: var(--amber); }
+
+  .progress-track{
+    height: 3px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-top:none;
+    border-bottom:none;
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background: var(--amber);
+    transition: width .25s ease;
+  }
+
+  .body-panel{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 0 0 10px 10px;
+    padding: 6px 0 0;
+  }
+
+  .intro{
+    padding: 20px 24px 18px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .intro h1{
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .intro p{
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13.5px;
+  }
+  .name-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .name-row label{
+    font-size: 13px;
+    color: var(--text);
+  }
+  .name-row input{
+    background: #12131c;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    padding: 7px 10px;
+    width: 260px;
+    max-width: 100%;
+  }
+  .name-row input:focus{
+    outline:none;
+    border-color: var(--amber);
+  }
+  .name-row input.locked{
+    pointer-events:none;
+    opacity: .75;
+  }
+
+  .question{
+    display:flex;
+    border-bottom: 1px dashed var(--border);
+  }
+  .gutter{
+    flex: 0 0 46px;
+    text-align:right;
+    padding: 22px 12px 22px 0;
+    color: var(--muted);
+    font-size: 12.5px;
+    user-select:none;
+    border-right: 1px solid var(--border);
+  }
+  .qcontent{
+    flex:1;
+    padding: 20px 22px 22px 20px;
+  }
+  .qmeta{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom: 8px;
+  }
+  .qpoints{
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .qtext{
+    color: var(--text);
+    font-size: 14.5px;
+    margin-bottom: 12px;
+  }
+  .qtype{
+    display:inline-block;
+    font-size: 10.5px;
+    color: var(--blue);
+    border: 1px solid #7dd3fc44;
+    background: #7dd3fc11;
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+
+  code, .code-block{
+    font-family: var(--mono);
+  }
+  .code-block{
+    background: #12131c;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 10px 0 14px;
+    font-size: 13.5px;
+    overflow-x:auto;
+    white-space: pre;
+    color: #c9cbe0;
+  }
+  .kw{ color:#c792ea; }
+  .type{ color:#82aaff; }
+  .str{ color:#c3e88d; }
+  .num{ color:#f78c6c; }
+  .fn{ color:#82aaff; }
+  .cmt{ color: var(--muted); font-style: italic; }
+
+  .arr-diagram{
+    display:flex;
+    gap:0;
+    margin: 10px 0 6px;
+    font-size: 13px;
+  }
+  .cell{
+    border: 1px solid var(--border);
+    background:#12131c;
+    padding: 8px 12px;
+    text-align:center;
+    position:relative;
+  }
+  .cell .idx{
+    display:block;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .arrow{
+    text-align:center;
+    color: var(--amber);
+    font-size: 15px;
+    margin-top: 2px;
+  }
+  .arrow-cell{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .options{ display:flex; flex-direction:column; gap:8px; }
+  .option{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor:pointer;
+    transition: border-color .15s, background .15s;
+    font-size: 13.5px;
+  }
+  .option:hover{ border-color: var(--amber-dim); background: #ffb45408; }
+  .option input{ margin-top: 3px; accent-color: var(--amber); cursor:pointer; }
+  .option.selected{ border-color: var(--amber); background: var(--amber-dim); }
+  .option.locked.correct{ border-color: var(--green); background: var(--green-dim); }
+  .option.locked.incorrect{ border-color: var(--red); background: var(--red-dim); }
+  .option.locked.missed{ border-color: var(--green); background: transparent; }
+
+  .tf-row{ display:flex; gap:10px; }
+  .tf-row .option{ flex:1; justify-content:center; }
+
+  .blank-row{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-wrap:wrap;
+    background:#12131c;
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+  }
+  .blank-row input{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    padding: 4px 8px;
+    width: 130px;
+  }
+  .blank-row input:focus{
+    outline:none;
+    border-color: var(--amber);
+  }
+  .blank-row input.locked{
+    pointer-events:none;
+  }
+  .blank-row input.correct{ border-color: var(--green); color: var(--green); }
+  .blank-row input.incorrect{ border-color: var(--red); color: var(--red); }
+
+  .hint-answer{
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .hint-answer b{ color: var(--green); font-weight:normal; }
+
+  .footer{
+    padding: 20px 24px 26px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 12px;
+  }
+  .status-text{
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  button.submit{
+    font-family: var(--mono);
+    background: var(--amber);
+    color: #1a1b26;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  button.submit:hover{ filter: brightness(1.08); }
+  button.submit:active{ transform: translateY(1px); }
+  button.submit:disabled{
+    background: #3a3c4d;
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  .console{
+    display:none;
+    margin: 0 0 0;
+    border-top: 1px solid var(--border);
+  }
+  .console.show{ display:block; }
+  .console-head{
+    padding: 16px 24px 4px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .console-body{
+    padding: 4px 24px 22px;
+  }
+  .build-line{
+    font-size: 13.5px;
+    margin: 4px 0;
+  }
+  .build-status{
+    font-size: 16px;
+    font-weight: 600;
+    margin: 6px 0 4px;
+  }
+  .build-status.ok{ color: var(--green); }
+  .build-status.warn{ color: var(--amber); }
+  .build-status.fail{ color: var(--red); }
+  .score-bar-track{
+    height: 8px;
+    background: #12131c;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow:hidden;
+    margin: 10px 0 14px;
+  }
+  .score-bar-fill{
+    height:100%;
+    background: linear-gradient(90deg, var(--amber), var(--green));
+    width:0%;
+    transition: width .6s ease;
+  }
+  .review-item{
+    display:flex;
+    gap:10px;
+    font-size: 12.5px;
+    padding: 6px 0;
+    color: var(--muted);
+  }
+  .review-item .mark{ width: 16px; flex:none; }
+  .review-item.ok .mark{ color: var(--green); }
+  .review-item.bad .mark{ color: var(--red); }
+  .review-item .qname{ color: var(--text); }
+  .retry-btn{
+    margin-top: 14px;
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid var(--amber-dim);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    cursor:pointer;
+  }
+  .retry-btn:hover{ background: var(--amber-dim); }
+
+  @media (max-width: 520px){
+    .gutter{ flex-basis: 32px; padding-right: 8px; font-size: 11px; }
+    .qcontent{ padding: 16px 14px 18px 14px; }
+    .code-block{ font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="window">
+
+  <div class="titlebar">
+    <div class="dots"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <div class="tab"><span class="filename">Quiz_Arrays.java</span><span class="dirty" id="dirtyDot"></span></div>
+  </div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div class="body-panel">
+    <div class="intro">
+      <h1>Cuestionario — Arrays en Java</h1>
+      <p>10 preguntas · 1 punto cada una · Las preguntas sin responder se cuentan como incorrectas. Presionar "Verificar respuestas" cuando esté listo.</p>
+      <div class="name-row">
+        <label for="studentName">Nombre y apellido:</label>
+        <input type="text" id="studentName" placeholder="Escribir nombre y apellido" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+
+    <div id="quizContainer"></div>
+
+    <div class="footer">
+      <span class="status-text" id="statusText">0 / 10 respondidas</span>
+      <button class="submit" id="submitBtn" disabled>Verificar respuestas</button>
+    </div>
+
+    <div class="console" id="console">
+      <div class="console-head">// build output</div>
+      <div class="console-body" id="consoleBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Datos del cuestionario ----------
+const questions = [
+  {
+    id: "q1",
+    type: "multi",
+    text: "Seleccionar las opciones correctas en cuanto al concepto de array.",
+    options: [
+      { id:"a", label:'Un array es una colección de datos, que pueden ser de distinto tipo y agrupados en una única variable' },
+      { id:"b", label:'Un array es una colección de datos, todos del mismo tipo y agrupados en una única variable' },
+      { id:"c", label:'Un array es una colección de variables, todos del mismo tipo' }
+    ],
+    correct: ["b"]
+  },
+  {
+    id: "q2",
+    type: "multi",
+    text: "En la siguiente declaración, indicar qué afirmaciones son correctas:",
+    code: `<span class="type">int</span>[] misterio = <span class="kw">new</span> <span class="type">int</span>[<span class="num">5</span>];`,
+    options: [
+      { id:"a", label:"Se está reservando memoria para un array de 5 enteros" },
+      { id:"b", label:"El array no tiene nombre" },
+      { id:"c", label:"Es un array de enteros" },
+      { id:"d", label:"El array tiene un largo máximo de 5 enteros" },
+      { id:"e", label:"Para acceder a lo que hay en el lugar de índice 3, se escribe misterio[3]" }
+    ],
+    correct: ["a","c","d","e"]
+  },
+  {
+    id: "q3",
+    type: "tf",
+    text: "Para acceder a la casilla marcada con la flecha, se escribe a[3].",
+    diagram: [10, 20, 30, 45, 50],
+    arrowIndex: 3,
+    correct: "V"
+  },
+  {
+    id: "q4",
+    type: "blank",
+    text: "Completar para mostrar el segundo item del array cars.",
+    code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
+System.out.println( __BLANK0__ );`,
+    blanks: [ { accepted: ["cars[1]"], placeholder: "cars[?]" } ]
+  },
+  {
+    id: "q5",
+    type: "blank",
+    text: 'Completar para cambiar el valor de "Volvo" por "Opel" en el array cars.',
+    code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
+__BLANK0__ = __BLANK1__;
+System.out.println(cars[0]);`,
+    blanks: [
+      { accepted: ["cars[0]"], placeholder: "cars[?]" },
+      { accepted: ['"opel"'], placeholder: '"..."' }
+    ]
+  },
+  {
+    id: "q6",
+    type: "blank",
+    text: "Completar para crear un array de tipo String llamado cars.",
+    code: `__BLANK0__ __BLANK1__ = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};`,
+    blanks: [
+      { accepted: ["string[]"], placeholder: "tipo" },
+      { accepted: ["cars"], placeholder: "nombre" }
+    ]
+  },
+  {
+    id: "q7",
+    type: "tf",
+    text: "Dado el siguiente código, indicar si muestra el contenido de las celdas del array arreglo2.",
+    code: `<span class="type">int</span>[] arreglo2 = {<span class="num">5</span>, <span class="num">10</span>, <span class="num">15</span>, <span class="num">20</span>};
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; arreglo2.length; i++) {
+    System.out.println(arreglo2[i]);
+}`,
+    correct: "V"
+  },
+  {
+    id: "q8",
+    type: "tf",
+    text: "El siguiente código llena el array arreglo1 con los valores de i.",
+    code: `<span class="type">int</span>[] arreglo1 = <span class="kw">new</span> <span class="type">int</span>[<span class="num">5</span>];
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; arreglo1.length; i++) {
+    arreglo1[i] = i;
+}`,
+    correct: "V"
+  },
+  {
+    id: "q9",
+    type: "single",
+    text: "Dado el array int[] notas = {8, 6, 9, 7}; indicar el valor de notas.length.",
+    options: [
+      { id:"a", label:"3" },
+      { id:"b", label:"4" },
+      { id:"c", label:"5" },
+      { id:"d", label:"Da error de compilación" }
+    ],
+    correct: ["b"]
+  },
+  {
+    id: "q10",
+    type: "blank",
+    text: "Completar el código para recorrer el array nombres con un ciclo for y mostrar cada elemento.",
+    code: `<span class="type">String</span>[] nombres = {<span class="str">"Ana"</span>, <span class="str">"Luis"</span>, <span class="str">"Eva"</span>};
+<span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; nombres.__BLANK0__; i++) {
+    System.out.println(nombres[__BLANK1__]);
+}`,
+    blanks: [
+      { accepted: ["length"], placeholder: "?" },
+      { accepted: ["i"], placeholder: "?" }
+    ]
+  }
+];
+
+// ---------- Configuración de guardado en Google Sheets ----------
+// Pegar aquí la URL de la Web App de Apps Script (ver instrucciones de la docente).
+const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzaB25gqsMWoPtjg08ml6_8BVmVlTimkt6DiGyYxsfT0-QUmKDOVjSeXCyTD6t9KEdT/exec";
+
+// ---------- Estado ----------
+const state = {};
+questions.forEach(q => state[q.id] = q.type === "blank" ? new Array(q.blanks.length).fill("") : null);
+let locked = false;
+
+// ---------- Render ----------
+const container = document.getElementById("quizContainer");
+
+function renderDiagram(values, arrowIndex){
+  let html = '<div class="arr-diagram">';
+  values.forEach((v,i)=>{
+    html += `<div class="cell">${v}<span class="idx">[${i}]</span></div>`;
+  });
+  html += '</div>';
+  html += `<div class="arr-diagram" style="margin-top:0;">`;
+  values.forEach((v,i)=>{
+    html += `<div class="cell" style="visibility:hidden; padding-top:0; padding-bottom:0; border:none;">.</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+questions.forEach((q, qi) => {
+  const wrap = document.createElement("div");
+  wrap.className = "question";
+  wrap.id = "wrap-" + q.id;
+
+  const gutter = document.createElement("div");
+  gutter.className = "gutter";
+  gutter.textContent = String(qi+1).padStart(2,"0");
+  wrap.appendChild(gutter);
+
+  const content = document.createElement("div");
+  content.className = "qcontent";
+
+  const typeLabels = { multi: "selección múltiple", single: "opción única", tf: "verdadero / falso", blank: "completar" };
+  content.innerHTML += `<div class="qtype">${typeLabels[q.type]}</div>`;
+  content.innerHTML += `<div class="qtext">${q.text}</div>`;
+
+  if (q.diagram){
+    let d = '<div class="arr-diagram">';
+    q.diagram.forEach((v,i)=>{
+      d += `<div class="cell">${v}<span class="idx">[${i}]</span></div>`;
+    });
+    d += '</div>';
+    d += '<div class="arr-diagram" style="margin-bottom:14px;">';
+    q.diagram.forEach((v,i)=>{
+      d += `<div class="cell" style="border:none; background:transparent; padding-top:0;">${i===q.arrowIndex ? '<span class="arrow">↑</span>' : ''}</div>`;
+    });
+    d += '</div>';
+    content.innerHTML += d;
+  }
+
+  if (q.code){
+    let codeHtml = q.code;
+    if (q.type === "blank"){
+      q.blanks.forEach((b, bi) => {
+        codeHtml = codeHtml.replace(`__BLANK${bi}__`, `<input type="text" data-qid="${q.id}" data-bi="${bi}" placeholder="${b.placeholder}" autocomplete="off" spellcheck="false">`);
+      });
+    }
+    content.innerHTML += `<div class="code-block">${codeHtml}</div>`;
+  }
+
+  if (q.type === "multi" || q.type === "single"){
+    const opts = document.createElement("div");
+    opts.className = "options";
+    q.options.forEach(o => {
+      const optDiv = document.createElement("label");
+      optDiv.className = "option";
+      optDiv.dataset.qid = q.id;
+      optDiv.dataset.oid = o.id;
+      const inputType = q.type === "multi" ? "checkbox" : "radio";
+      optDiv.innerHTML = `<input type="${inputType}" name="${q.id}" value="${o.id}"><span>${o.label}</span>`;
+      opts.appendChild(optDiv);
+    });
+    content.appendChild(opts);
+  }
+
+  if (q.type === "tf"){
+    const row = document.createElement("div");
+    row.className = "options tf-row";
+    ["V","F"].forEach(v => {
+      const optDiv = document.createElement("label");
+      optDiv.className = "option";
+      optDiv.dataset.qid = q.id;
+      optDiv.dataset.oid = v;
+      optDiv.innerHTML = `<input type="radio" name="${q.id}" value="${v}"><span>${v === "V" ? "Verdadero" : "Falso"}</span>`;
+      row.appendChild(optDiv);
+    });
+    content.appendChild(row);
+  }
+
+  content.innerHTML += `<div class="hint-answer" id="hint-${q.id}"></div>`;
+
+  wrap.appendChild(content);
+  container.appendChild(wrap);
+});
+
+// ---------- Interacción ----------
+container.addEventListener("change", (e) => {
+  if (locked) return;
+  const target = e.target;
+
+  if (target.matches('input[type="checkbox"], input[type="radio"]')) {
+    const qid = target.name;
+    const q = questions.find(x => x.id === qid);
+    if (q.type === "multi") {
+      const checked = Array.from(container.querySelectorAll(`input[name="${qid}"]:checked`)).map(i => i.value);
+      state[qid] = checked;
+    } else {
+      state[qid] = target.value;
+    }
+    updateOptionStyles(qid);
+  }
+
+  if (target.matches('input[type="text"]')) {
+    const qid = target.dataset.qid;
+    const bi = parseInt(target.dataset.bi, 10);
+    state[qid][bi] = target.value;
+  }
+
+  updateStatus();
+});
+
+function updateOptionStyles(qid){
+  container.querySelectorAll(`.option[data-qid="${qid}"]`).forEach(optEl => {
+    const input = optEl.querySelector("input");
+    optEl.classList.toggle("selected", input.checked);
+  });
+}
+
+function isAnswered(q){
+  const v = state[q.id];
+  if (q.type === "multi") return Array.isArray(v) && v.length > 0;
+  if (q.type === "single" || q.type === "tf") return v !== null && v !== undefined;
+  if (q.type === "blank") return v.every(x => x.trim().length > 0);
+  return false;
+}
+
+function getStudentName(){
+  return document.getElementById("studentName").value.trim();
+}
+
+function updateStatus(){
+  const answered = questions.filter(isAnswered).length;
+  const hasName = getStudentName().length > 0;
+  document.getElementById("statusText").textContent = hasName
+    ? `${answered} / ${questions.length} respondidas`
+    : `Completar nombre y apellido — ${answered} / ${questions.length} respondidas`;
+  const fill = document.getElementById("progressFill");
+  fill.style.width = (answered / questions.length * 100) + "%";
+  document.getElementById("dirtyDot").textContent = answered > 0 && answered < questions.length ? "●" : "";
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = !hasName;
+}
+document.getElementById("studentName").addEventListener("input", updateStatus);
+updateStatus();
+
+// ---------- Corrección ----------
+function normalize(s){
+  return s.trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function gradeQuestion(q){
+  const v = state[q.id];
+  if (q.type === "multi"){
+    const correctSet = new Set(q.correct);
+    const chosenSet = new Set(v);
+    const ok = correctSet.size === chosenSet.size && [...correctSet].every(x => chosenSet.has(x));
+    return ok;
+  }
+  if (q.type === "single"){
+    return q.correct.includes(v);
+  }
+  if (q.type === "tf"){
+    return v === q.correct;
+  }
+  if (q.type === "blank"){
+    return q.blanks.every((b, i) => b.accepted.includes(normalize(v[i])));
+  }
+  return false;
+}
+
+function sendToSheet(name, score, total){
+  if (!SHEET_WEBAPP_URL || SHEET_WEBAPP_URL.indexOf("PEGAR_AQUI") !== -1) {
+    return Promise.resolve({ sent: false, reason: "no-config" });
+  }
+  const payload = new URLSearchParams({
+    nombre: name,
+    puntaje: String(score),
+    total: String(total),
+    fecha: new Date().toISOString()
+  });
+  return fetch(SHEET_WEBAPP_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: payload.toString()
+  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "error" }));
+}
+
+document.getElementById("submitBtn").addEventListener("click", () => {
+  if (locked) return;
+  locked = true;
+
+  const studentName = getStudentName();
+  document.getElementById("studentName").classList.add("locked");
+
+  let score = 0;
+  const results = [];
+
+  questions.forEach(q => {
+    const ok = gradeQuestion(q);
+    if (ok) score++;
+    results.push({ id: q.id, ok });
+
+    if (q.type === "multi" || q.type === "single" || q.type === "tf"){
+      container.querySelectorAll(`.option[data-qid="${q.id}"]`).forEach(optEl => {
+        const input = optEl.querySelector("input");
+        input.disabled = true;
+        optEl.classList.add("locked");
+        const oid = optEl.dataset.oid;
+        const isCorrectOpt = q.type === "tf" ? oid === q.correct : q.correct.includes(oid);
+        if (input.checked && isCorrectOpt) optEl.classList.add("correct");
+        else if (input.checked && !isCorrectOpt) optEl.classList.add("incorrect");
+        else if (!input.checked && isCorrectOpt) optEl.classList.add("missed");
+      });
+    }
+
+    if (q.type === "blank"){
+      q.blanks.forEach((b, i) => {
+        const input = container.querySelector(`input[data-qid="${q.id}"][data-bi="${i}"]`);
+        input.disabled = true;
+        input.classList.add("locked");
+        const correctOne = normalize(input.value) === b.accepted[0] ? true : b.accepted.includes(normalize(input.value));
+        input.classList.add(correctOne ? "correct" : "incorrect");
+      });
+      if (!ok){
+        const hint = document.getElementById(`hint-${q.id}`);
+        hint.innerHTML = "Respuesta esperada: " + q.blanks.map(b => `<b>${b.accepted[0]}</b>`).join(" , ");
+      }
+    }
+  });
+
+  document.getElementById("submitBtn").style.display = "none";
+
+  const pct = score / questions.length;
+  const consoleEl = document.getElementById("console");
+  const body = document.getElementById("consoleBody");
+
+  let statusClass = "fail", statusText = "BUILD FAILED";
+  if (pct === 1) { statusClass = "ok"; statusText = "BUILD SUCCESSFUL"; }
+  else if (pct >= 0.6) { statusClass = "warn"; statusText = "BUILD SUCCESSFUL CON ADVERTENCIAS"; }
+
+  let html = "";
+  html += `<div class="build-status ${statusClass}">${statusText}</div>`;
+  html += `<div class="build-line">Alumno/a: <b style="color:var(--text)">${studentName}</b></div>`;
+  html += `<div class="build-line">Puntaje: <b style="color:var(--amber)">${score} / ${questions.length}</b></div>`;
+  html += `<div class="score-bar-track"><div class="score-bar-fill" id="scoreBarFill"></div></div>`;
+  html += `<div class="build-line" style="color:var(--muted); margin-bottom:8px;">Detalle por pregunta:</div>`;
+  results.forEach((r, i) => {
+    html += `<div class="review-item ${r.ok ? 'ok' : 'bad'}"><span class="mark">${r.ok ? '✓' : '✕'}</span><span class="qname">Pregunta ${i+1}</span></div>`;
+  });
+  html += `<div class="build-line" id="sheetStatus" style="color:var(--muted); margin-top:12px;">Guardando resultado…</div>`;
+  html += `<button class="retry-btn" id="retryBtn">Reintentar cuestionario</button>`;
+
+  body.innerHTML = html;
+  consoleEl.classList.add("show");
+  setTimeout(() => { document.getElementById("scoreBarFill").style.width = (pct*100) + "%"; }, 50);
+  consoleEl.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  document.getElementById("retryBtn").addEventListener("click", () => location.reload());
+
+  sendToSheet(studentName, score, questions.length).then(res => {
+    const sheetStatus = document.getElementById("sheetStatus");
+    if (res.sent) {
+      sheetStatus.textContent = "Resultado guardado en la planilla.";
+      sheetStatus.style.color = "var(--green)";
+    } else if (res.reason === "no-config") {
+      sheetStatus.textContent = "Guardado en planilla no configurado (falta la URL de la Web App).";
+      sheetStatus.style.color = "var(--muted)";
+    } else {
+      sheetStatus.textContent = "No se pudo guardar en la planilla (revisar conexión).";
+      sheetStatus.style.color = "var(--red)";
+    }
+  });
+});
+</script>
+</body>
+</html>
