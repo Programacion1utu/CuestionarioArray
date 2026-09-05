@@ -388,9 +388,105 @@
     .qcontent{ padding: 16px 14px 18px 14px; }
     .code-block{ font-size: 12px; }
   }
+
+  .fs-overlay{
+    position: fixed;
+    inset: 0;
+    background: #0d0e15;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .fs-box{
+    max-width: 420px;
+    text-align:center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px 28px;
+  }
+  .fs-box h2{
+    margin: 0 0 10px;
+    font-size: 16px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .fs-box p{
+    margin: 0 0 20px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .fs-btn{
+    font-family: var(--mono);
+    background: var(--amber);
+    color: #1a1b26;
+    border: none;
+    border-radius: 6px;
+    padding: 11px 24px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .fs-btn:hover{ filter: brightness(1.08); }
+  .fs-note{
+    margin: 14px 0 0 !important;
+    font-size: 11.5px !important;
+    color: var(--red) !important;
+  }
+  .fs-name-input{
+    display:block;
+    width: 100%;
+    background: #12131c;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    padding: 9px 12px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+  }
+  .fs-name-input:focus{
+    outline:none;
+    border-color: var(--amber);
+  }
+  .fs-btn:disabled{
+    background: #3a3c4d;
+    color: var(--muted);
+    cursor: not-allowed;
+  }
 </style>
 </head>
 <body>
+
+<div class="fs-overlay" id="lockedOverlay" style="display:none;">
+  <div class="fs-box">
+    <h2>Cuestionario ya enviado</h2>
+    <p>Este cuestionario ya fue enviado desde este navegador y no se puede volver a abrir.</p>
+  </div>
+</div>
+
+<div class="fs-overlay" id="nameOverlay">
+  <div class="fs-box">
+    <div class="dots" style="justify-content:center; margin-bottom:16px;"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+    <h2>Quiz_Arrays.java</h2>
+    <p>Escribir nombre y apellido para comenzar. El cuestionario se abre en pantalla completa; si se sale de pantalla completa antes de terminar, se envía automáticamente con lo que esté respondido hasta ese momento.</p>
+    <input type="text" id="studentNameInput" class="fs-name-input" placeholder="Nombre y apellido" autocomplete="off" spellcheck="false">
+    <button class="fs-btn" id="startBtn" disabled>Comenzar</button>
+    <p class="fs-note" id="fsNote"></p>
+  </div>
+</div>
+
+<div class="fs-overlay" id="autoSubmitOverlay" style="display:none;">
+  <div class="fs-box">
+    <h2>Enviando…</h2>
+    <p id="autoSubmitMsg">Se salió de pantalla completa. Enviando lo que estaba respondido hasta el momento.</p>
+  </div>
+</div>
+
 <div class="window">
 
   <div class="titlebar">
@@ -404,8 +500,8 @@
       <h1>Cuestionario — Arrays en Java</h1>
       <p>10 preguntas · 1 punto cada una · Las preguntas sin responder se cuentan como incorrectas. Presionar "Verificar respuestas" cuando esté listo.</p>
       <div class="name-row">
-        <label for="studentName">Nombre y apellido:</label>
-        <input type="text" id="studentName" placeholder="Escribir nombre y apellido" autocomplete="off" spellcheck="false">
+        <span>Alumno/a:</span>
+        <span id="studentNameDisplay" style="color: var(--amber);"></span>
       </div>
     </div>
 
@@ -413,7 +509,7 @@
 
     <div class="footer">
       <span class="status-text" id="statusText">0 / 10 respondidas</span>
-      <button class="submit" id="submitBtn" disabled>Verificar respuestas</button>
+      <button class="submit" id="submitBtn">Verificar respuestas</button>
     </div>
 
     <div class="console" id="console">
@@ -422,6 +518,7 @@
     </div>
   </div>
 </div>
+
 
 <script>
 // ---------- Datos del cuestionario ----------
@@ -673,23 +770,18 @@ function isAnswered(q){
   return false;
 }
 
+let studentNameGlobal = "";
 function getStudentName(){
-  return document.getElementById("studentName").value.trim();
+  return studentNameGlobal;
 }
 
 function updateStatus(){
   const answered = questions.filter(isAnswered).length;
-  const hasName = getStudentName().length > 0;
-  document.getElementById("statusText").textContent = hasName
-    ? `${answered} / ${questions.length} respondidas`
-    : `Completar nombre y apellido — ${answered} / ${questions.length} respondidas`;
+  document.getElementById("statusText").textContent = `${answered} / ${questions.length} respondidas`;
   const fill = document.getElementById("progressFill");
   fill.style.width = (answered / questions.length * 100) + "%";
   document.getElementById("dirtyDot").textContent = answered > 0 && answered < questions.length ? "●" : "";
-  const btn = document.getElementById("submitBtn");
-  btn.disabled = !hasName;
 }
-document.getElementById("studentName").addEventListener("input", updateStatus);
 updateStatus();
 
 // ---------- Corrección (server-side, vía Apps Script) ----------
@@ -710,16 +802,17 @@ function submitForGrading(payload){
   });
 }
 
-function showGradingError(){
+function showGradingError(retryLabel){
   const btn = document.getElementById("submitBtn");
   btn.disabled = false;
-  btn.textContent = "Reintentar corrección";
+  btn.style.display = "";
+  btn.textContent = retryLabel || "Reintentar corrección";
   const statusText = document.getElementById("statusText");
   statusText.textContent = "No se pudo conectar para corregir. Verificar conexión a internet e intentar nuevamente.";
   statusText.style.color = "var(--red)";
 }
 
-document.getElementById("submitBtn").addEventListener("click", () => {
+function performSubmit(reason){
   if (locked) return;
   if (!SHEET_WEBAPP_URL || SHEET_WEBAPP_URL.indexOf("PEGAR_AQUI") !== -1) {
     showGradingError();
@@ -731,19 +824,28 @@ document.getElementById("submitBtn").addEventListener("click", () => {
   btn.disabled = true;
   btn.textContent = "Corrigiendo…";
 
+  if (reason === "fullscreen-exit"){
+    document.getElementById("autoSubmitOverlay").style.display = "flex";
+  }
+
   const studentName = getStudentName();
   const payload = buildAnswerPayload();
 
   submitForGrading(payload).then(data => {
     locked = true;
-    document.getElementById("studentName").classList.add("locked");
-    renderResults(studentName, data);
+    quizFinished = true;
+    try { localStorage.setItem("quizArraysSubmitted", "1"); } catch (e) {}
+    document.getElementById("autoSubmitOverlay").style.display = "none";
+    renderResults(studentName, data, reason);
   }).catch(() => {
-    showGradingError();
+    document.getElementById("autoSubmitOverlay").style.display = "none";
+    showGradingError(reason === "fullscreen-exit" ? "Reintentar envío" : "Reintentar corrección");
   });
-});
+}
 
-function renderResults(studentName, data){
+document.getElementById("submitBtn").addEventListener("click", () => performSubmit("manual"));
+
+function renderResults(studentName, data, reason){
   const score = data.score;
   const total = data.total;
   const results = data.results || [];
@@ -793,6 +895,9 @@ function renderResults(studentName, data){
   else if (pct >= 0.6) { statusClass = "warn"; statusText = "BUILD SUCCESSFUL CON ADVERTENCIAS"; }
 
   let html = "";
+  if (reason === "fullscreen-exit"){
+    html += `<div class="build-line" style="color:var(--red); margin-bottom:6px;">⚠ Enviado automáticamente por salir de pantalla completa.</div>`;
+  }
   html += `<div class="build-status ${statusClass}">${statusText}</div>`;
   html += `<div class="build-line">Alumno/a: <b style="color:var(--text)">${studentName}</b></div>`;
   html += `<div class="build-line">Puntaje: <b style="color:var(--amber)">${score} / ${total}</b></div>`;
@@ -804,14 +909,68 @@ function renderResults(studentName, data){
     html += `<div class="review-item ${ok ? 'ok' : 'bad'}"><span class="mark">${ok ? '✓' : '✕'}</span><span class="qname">Pregunta ${i+1}</span></div>`;
   });
   html += `<div class="build-line" style="color:var(--green); margin-top:12px;">Resultado guardado en la planilla.</div>`;
-  html += `<button class="retry-btn" id="retryBtn">Reintentar cuestionario</button>`;
+  html += `<div class="build-line" style="color:var(--muted); margin-top:12px; font-size:11.5px;">Este cuestionario ya fue enviado y no se puede volver a abrir.</div>`;
 
   body.innerHTML = html;
   consoleEl.classList.add("show");
   setTimeout(() => { document.getElementById("scoreBarFill").style.width = (pct*100) + "%"; }, 50);
   consoleEl.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  document.getElementById("retryBtn").addEventListener("click", () => location.reload());
+}
+
+// ---------- Pantalla completa forzada + control de reapertura ----------
+let quizFinished = false;
+let fsActive = false;
+
+function requestFS(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if (req) return req.call(el);
+  return Promise.reject(new Error("not-supported"));
+}
+
+function isFullscreen(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+}
+
+// Si este navegador ya envió el cuestionario antes, bloquear todo desde el arranque.
+let alreadySubmitted = false;
+try { alreadySubmitted = localStorage.getItem("quizArraysSubmitted") === "1"; } catch (e) {}
+
+if (alreadySubmitted) {
+  document.getElementById("nameOverlay").style.display = "none";
+  document.getElementById("lockedOverlay").style.display = "flex";
+} else {
+  const nameInput = document.getElementById("studentNameInput");
+  const startBtn = document.getElementById("startBtn");
+
+  nameInput.addEventListener("input", () => {
+    startBtn.disabled = nameInput.value.trim().length === 0;
+  });
+
+  startBtn.addEventListener("click", () => {
+    studentNameGlobal = nameInput.value.trim();
+    if (!studentNameGlobal) return;
+    document.getElementById("studentNameDisplay").textContent = studentNameGlobal;
+
+    requestFS().then(() => {
+      fsActive = true;
+      document.getElementById("nameOverlay").style.display = "none";
+    }).catch(() => {
+      // El navegador/dispositivo no soporta pantalla completa (común en iPhone/Safari):
+      // se deja avanzar igual para no bloquear el cuestionario por completo.
+      document.getElementById("fsNote").textContent = "Este dispositivo no admite pantalla completa. El cuestionario continúa de todas formas.";
+      setTimeout(() => { document.getElementById("nameOverlay").style.display = "none"; }, 1400);
+    });
+  });
+
+  ["fullscreenchange", "webkitfullscreenchange", "msfullscreenchange"].forEach(ev => {
+    document.addEventListener(ev, () => {
+      if (!fsActive || quizFinished || locked || isFullscreen()) return;
+      fsActive = false;
+      performSubmit("fullscreen-exit");
+    });
+  });
 }
 </script>
 </body>

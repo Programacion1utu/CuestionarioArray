@@ -8,8 +8,22 @@ una planilla de Google Sheets.
 ## Características
 
 - 10 preguntas de selección múltiple, verdadero/falso y completar código.
-- Pide nombre y apellido antes de habilitar el envío.
-- Las preguntas sin responder cuentan como incorrectas, pero no bloquean el envío.
+- Pide nombre y apellido antes de mostrar cualquier pregunta.
+- El cuestionario se abre en **pantalla completa**. Si se sale de pantalla
+  completa antes de terminar (Esc, otro atajo, etc.), se envía
+  automáticamente lo que esté respondido hasta ese momento — sin aviso
+  previo ni posibilidad de continuar.
+- Las preguntas sin responder cuentan como incorrectas, pero no bloquean el
+  envío manual.
+- Una vez enviado (manual o automático), el cuestionario queda bloqueado y
+  **no se puede volver a abrir en ese mismo navegador** (usa `localStorage`
+  para recordarlo). Esto no es infalible: abrirlo en otro navegador, en modo
+  incógnito, o en otro dispositivo lo evade. Si un mismo nombre aparece más
+  de una vez en la planilla, conviene revisarlo manualmente y descartar los
+  intentos de más.
+- Los dispositivos que no soportan pantalla completa vía web (por ejemplo
+  Safari en iPhone) dejan continuar igual, con un aviso, para no bloquear el
+  cuestionario por completo.
 - La corrección se hace **del lado del servidor** (Google Apps Script): las
   respuestas correctas no viajan en el HTML, así que no aparecen si un
   estudiante abre las herramientas de desarrollador (F12) o el código fuente
@@ -22,6 +36,11 @@ una planilla de Google Sheets.
 Abrir `quiz-arrays.html` en cualquier navegador (no necesita servidor propio,
 salvo la conexión a internet para enviar la corrección). Se puede compartir
 el archivo directamente, subirlo a GitHub Pages, o distribuirlo por classroom.
+Como la pantalla completa depende del navegador, conviene distribuirlo como
+un link que se abra en su propia pestaña — si se embebe dentro de un iframe
+(por ejemplo, incrustado en el contenido de un assignment), la pantalla
+completa puede no funcionar salvo que ese iframe tenga el atributo
+`allow="fullscreen"`.
 
 ## Configurar la planilla de notas
 
