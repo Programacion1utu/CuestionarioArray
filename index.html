@@ -434,8 +434,7 @@ const questions = [
       { id:"a", label:'Un array es una colección de datos, que pueden ser de distinto tipo y agrupados en una única variable' },
       { id:"b", label:'Un array es una colección de datos, todos del mismo tipo y agrupados en una única variable' },
       { id:"c", label:'Un array es una colección de variables, todos del mismo tipo' }
-    ],
-    correct: ["b"]
+    ]
   },
   {
     id: "q2",
@@ -448,45 +447,43 @@ const questions = [
       { id:"c", label:"Es un array de enteros" },
       { id:"d", label:"El array tiene un largo máximo de 5 enteros" },
       { id:"e", label:"Para acceder a lo que hay en el lugar de índice 3, se escribe misterio[3]" }
-    ],
-    correct: ["a","c","d","e"]
+    ]
   },
   {
     id: "q3",
     type: "tf",
     text: "Para acceder a la casilla marcada con la flecha, se escribe a[3].",
     diagram: [10, 20, 30, 45, 50],
-    arrowIndex: 3,
-    correct: "V"
+    arrowIndex: 3
   },
   {
     id: "q4",
     type: "blank",
-    text: "Completar para mostrar el segundo item del array cars.",
-    code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
-System.out.println( __BLANK0__ );`,
-    blanks: [ { accepted: ["cars[1]"], placeholder: "cars[?]" } ]
+    text: "Completar para crear un array de tipo String llamado cars.",
+    code: `__BLANK0__ __BLANK1__ = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};`,
+    blanks: [
+      { placeholder: "tipo" },
+      { placeholder: "nombre" }
+    ]
   },
   {
     id: "q5",
+    type: "blank",
+    text: "Completar para mostrar el segundo item del array cars.",
+    code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
+System.out.println( __BLANK0__ );`,
+    blanks: [ { placeholder: "cars[?]" } ]
+  },
+  {
+    id: "q6",
     type: "blank",
     text: 'Completar para cambiar el valor de "Volvo" por "Opel" en el array cars.',
     code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
 __BLANK0__ = __BLANK1__;
 System.out.println(cars[0]);`,
     blanks: [
-      { accepted: ["cars[0]"], placeholder: "cars[?]" },
-      { accepted: ['"opel"'], placeholder: '"..."' }
-    ]
-  },
-  {
-    id: "q6",
-    type: "blank",
-    text: "Completar para crear un array de tipo String llamado cars.",
-    code: `__BLANK0__ __BLANK1__ = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};`,
-    blanks: [
-      { accepted: ["string[]"], placeholder: "tipo" },
-      { accepted: ["cars"], placeholder: "nombre" }
+      { placeholder: "cars[?]" },
+      { placeholder: '"..."' }
     ]
   },
   {
@@ -496,8 +493,7 @@ System.out.println(cars[0]);`,
     code: `<span class="type">int</span>[] arreglo2 = {<span class="num">5</span>, <span class="num">10</span>, <span class="num">15</span>, <span class="num">20</span>};
 <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; arreglo2.length; i++) {
     System.out.println(arreglo2[i]);
-}`,
-    correct: "V"
+}`
   },
   {
     id: "q8",
@@ -506,8 +502,7 @@ System.out.println(cars[0]);`,
     code: `<span class="type">int</span>[] arreglo1 = <span class="kw">new</span> <span class="type">int</span>[<span class="num">5</span>];
 <span class="kw">for</span> (<span class="type">int</span> i = <span class="num">0</span>; i &lt; arreglo1.length; i++) {
     arreglo1[i] = i;
-}`,
-    correct: "V"
+}`
   },
   {
     id: "q9",
@@ -518,8 +513,7 @@ System.out.println(cars[0]);`,
       { id:"b", label:"4" },
       { id:"c", label:"5" },
       { id:"d", label:"Da error de compilación" }
-    ],
-    correct: ["b"]
+    ]
   },
   {
     id: "q10",
@@ -530,15 +524,15 @@ System.out.println(cars[0]);`,
     System.out.println(nombres[__BLANK1__]);
 }`,
     blanks: [
-      { accepted: ["length"], placeholder: "?" },
-      { accepted: ["i"], placeholder: "?" }
+      { placeholder: "?" },
+      { placeholder: "?" }
     ]
   }
 ];
 
 // ---------- Configuración de guardado en Google Sheets ----------
 // Pegar aquí la URL de la Web App de Apps Script (ver instrucciones de la docente).
-const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzaB25gqsMWoPtjg08ml6_8BVmVlTimkt6DiGyYxsfT0-QUmKDOVjSeXCyTD6t9KEdT/exec";
+const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9c6M8ONmbHFPVJY4GrwYJKz5SJpgTzia3lMIFZkUyi-_RoyfQTsoBU_K4KMgUabOH/exec";
 
 // ---------- Estado ----------
 const state = {};
@@ -698,63 +692,67 @@ function updateStatus(){
 document.getElementById("studentName").addEventListener("input", updateStatus);
 updateStatus();
 
-// ---------- Corrección ----------
-function normalize(s){
-  return s.trim().toLowerCase().replace(/\s+/g, "");
+// ---------- Corrección (server-side, vía Apps Script) ----------
+function buildAnswerPayload(){
+  const answers = {};
+  questions.forEach(q => { answers[q.id] = state[q.id]; });
+  return { nombre: getStudentName(), answers };
 }
 
-function gradeQuestion(q){
-  const v = state[q.id];
-  if (q.type === "multi"){
-    const correctSet = new Set(q.correct);
-    const chosenSet = new Set(v);
-    const ok = correctSet.size === chosenSet.size && [...correctSet].every(x => chosenSet.has(x));
-    return ok;
-  }
-  if (q.type === "single"){
-    return q.correct.includes(v);
-  }
-  if (q.type === "tf"){
-    return v === q.correct;
-  }
-  if (q.type === "blank"){
-    return q.blanks.every((b, i) => b.accepted.includes(normalize(v[i])));
-  }
-  return false;
-}
-
-function sendToSheet(name, score, total){
-  if (!SHEET_WEBAPP_URL || SHEET_WEBAPP_URL.indexOf("PEGAR_AQUI") !== -1) {
-    return Promise.resolve({ sent: false, reason: "no-config" });
-  }
-  const payload = new URLSearchParams({
-    nombre: name,
-    puntaje: String(score),
-    total: String(total),
-    fecha: new Date().toISOString()
-  });
+function submitForGrading(payload){
   return fetch(SHEET_WEBAPP_URL, {
     method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: payload.toString()
-  }).then(() => ({ sent: true })).catch(() => ({ sent: false, reason: "error" }));
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).then(r => {
+    if (!r.ok) throw new Error("bad-response");
+    return r.json();
+  });
+}
+
+function showGradingError(){
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = false;
+  btn.textContent = "Reintentar corrección";
+  const statusText = document.getElementById("statusText");
+  statusText.textContent = "No se pudo conectar para corregir. Verificar conexión a internet e intentar nuevamente.";
+  statusText.style.color = "var(--red)";
 }
 
 document.getElementById("submitBtn").addEventListener("click", () => {
   if (locked) return;
-  locked = true;
+  if (!SHEET_WEBAPP_URL || SHEET_WEBAPP_URL.indexOf("PEGAR_AQUI") !== -1) {
+    showGradingError();
+    document.getElementById("statusText").textContent = "Falta configurar la URL de corrección (SHEET_WEBAPP_URL).";
+    return;
+  }
+
+  const btn = document.getElementById("submitBtn");
+  btn.disabled = true;
+  btn.textContent = "Corrigiendo…";
 
   const studentName = getStudentName();
-  document.getElementById("studentName").classList.add("locked");
+  const payload = buildAnswerPayload();
 
-  let score = 0;
-  const results = [];
+  submitForGrading(payload).then(data => {
+    locked = true;
+    document.getElementById("studentName").classList.add("locked");
+    renderResults(studentName, data);
+  }).catch(() => {
+    showGradingError();
+  });
+});
+
+function renderResults(studentName, data){
+  const score = data.score;
+  const total = data.total;
+  const results = data.results || [];
+  const resultsById = {};
+  results.forEach(r => { resultsById[r.id] = r; });
 
   questions.forEach(q => {
-    const ok = gradeQuestion(q);
-    if (ok) score++;
-    results.push({ id: q.id, ok });
+    const r = resultsById[q.id];
+    if (!r) return;
 
     if (q.type === "multi" || q.type === "single" || q.type === "tf"){
       container.querySelectorAll(`.option[data-qid="${q.id}"]`).forEach(optEl => {
@@ -762,7 +760,7 @@ document.getElementById("submitBtn").addEventListener("click", () => {
         input.disabled = true;
         optEl.classList.add("locked");
         const oid = optEl.dataset.oid;
-        const isCorrectOpt = q.type === "tf" ? oid === q.correct : q.correct.includes(oid);
+        const isCorrectOpt = Array.isArray(r.correct) ? r.correct.includes(oid) : oid === r.correct;
         if (input.checked && isCorrectOpt) optEl.classList.add("correct");
         else if (input.checked && !isCorrectOpt) optEl.classList.add("incorrect");
         else if (!input.checked && isCorrectOpt) optEl.classList.add("missed");
@@ -774,19 +772,19 @@ document.getElementById("submitBtn").addEventListener("click", () => {
         const input = container.querySelector(`input[data-qid="${q.id}"][data-bi="${i}"]`);
         input.disabled = true;
         input.classList.add("locked");
-        const correctOne = normalize(input.value) === b.accepted[0] ? true : b.accepted.includes(normalize(input.value));
-        input.classList.add(correctOne ? "correct" : "incorrect");
+        const flagOk = r.flags ? !!r.flags[i] : r.ok;
+        input.classList.add(flagOk ? "correct" : "incorrect");
       });
-      if (!ok){
+      if (!r.ok && r.expected){
         const hint = document.getElementById(`hint-${q.id}`);
-        hint.innerHTML = "Respuesta esperada: " + q.blanks.map(b => `<b>${b.accepted[0]}</b>`).join(" , ");
+        hint.innerHTML = "Respuesta esperada: " + r.expected.map(x => `<b>${x}</b>`).join(" , ");
       }
     }
   });
 
   document.getElementById("submitBtn").style.display = "none";
 
-  const pct = score / questions.length;
+  const pct = score / total;
   const consoleEl = document.getElementById("console");
   const body = document.getElementById("consoleBody");
 
@@ -797,13 +795,15 @@ document.getElementById("submitBtn").addEventListener("click", () => {
   let html = "";
   html += `<div class="build-status ${statusClass}">${statusText}</div>`;
   html += `<div class="build-line">Alumno/a: <b style="color:var(--text)">${studentName}</b></div>`;
-  html += `<div class="build-line">Puntaje: <b style="color:var(--amber)">${score} / ${questions.length}</b></div>`;
+  html += `<div class="build-line">Puntaje: <b style="color:var(--amber)">${score} / ${total}</b></div>`;
   html += `<div class="score-bar-track"><div class="score-bar-fill" id="scoreBarFill"></div></div>`;
   html += `<div class="build-line" style="color:var(--muted); margin-bottom:8px;">Detalle por pregunta:</div>`;
-  results.forEach((r, i) => {
-    html += `<div class="review-item ${r.ok ? 'ok' : 'bad'}"><span class="mark">${r.ok ? '✓' : '✕'}</span><span class="qname">Pregunta ${i+1}</span></div>`;
+  questions.forEach((q, i) => {
+    const r = resultsById[q.id];
+    const ok = r ? r.ok : false;
+    html += `<div class="review-item ${ok ? 'ok' : 'bad'}"><span class="mark">${ok ? '✓' : '✕'}</span><span class="qname">Pregunta ${i+1}</span></div>`;
   });
-  html += `<div class="build-line" id="sheetStatus" style="color:var(--muted); margin-top:12px;">Guardando resultado…</div>`;
+  html += `<div class="build-line" style="color:var(--green); margin-top:12px;">Resultado guardado en la planilla.</div>`;
   html += `<button class="retry-btn" id="retryBtn">Reintentar cuestionario</button>`;
 
   body.innerHTML = html;
@@ -812,21 +812,7 @@ document.getElementById("submitBtn").addEventListener("click", () => {
   consoleEl.scrollIntoView({ behavior: "smooth", block: "start" });
 
   document.getElementById("retryBtn").addEventListener("click", () => location.reload());
-
-  sendToSheet(studentName, score, questions.length).then(res => {
-    const sheetStatus = document.getElementById("sheetStatus");
-    if (res.sent) {
-      sheetStatus.textContent = "Resultado guardado en la planilla.";
-      sheetStatus.style.color = "var(--green)";
-    } else if (res.reason === "no-config") {
-      sheetStatus.textContent = "Guardado en planilla no configurado (falta la URL de la Web App).";
-      sheetStatus.style.color = "var(--muted)";
-    } else {
-      sheetStatus.textContent = "No se pudo guardar en la planilla (revisar conexión).";
-      sheetStatus.style.color = "var(--red)";
-    }
-  });
-});
+}
 </script>
 </body>
 </html>
