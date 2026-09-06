@@ -702,16 +702,16 @@ function shuffleArray(arr){
 }
 shuffleArray(autoQuestions);
 
-// Pregunta abierta: no suma al puntaje automático (X/10), se evalúa aparte
-// con IA y se muestra por separado. Va siempre al final, sin mezclarse.
-// Para cambiarla, editar "text" (el enunciado) y "rubric" (el criterio que
-// usa la IA para corregirla) — deben coincidir con lo que se define en
-// OPEN_QUESTION dentro de Code.gs.
+// Pregunta abierta: no suma al puntaje automático (X/10), queda guardada
+// en la planilla para que la corrijas vos, y se muestra por separado.
+// Va siempre al final, sin mezclarse con las 10 automáticas.
+// Para cambiarla, editar "text" (el enunciado) — no necesita coincidir con
+// nada del lado del servidor, ya que no se corrige automáticamente.
 const openQuestion = {
   id: "q11",
   type: "open",
   text: "Explicar con tus palabras qué sucede si un programa intenta acceder a una posición de un array que está fuera de su rango (por ejemplo, arreglo[10] en un array de tamaño 5). Mencionar qué tipo de error se produce.",
-  note: "Esta pregunta no suma al puntaje de las 10 anteriores. Se evalúa aparte con IA y se muestra por separado."
+  note: "Esta pregunta no suma al puntaje de las 10 anteriores. Queda guardada en la planilla para que la corrijas vos aparte."
 };
 
 const questions = autoQuestions.concat([openQuestion]);
@@ -755,7 +755,7 @@ questions.forEach((q, qi) => {
   const content = document.createElement("div");
   content.className = "qcontent";
 
-  const typeLabels = { multi: "selección múltiple", single: "opción única", tf: "verdadero / falso", blank: "completar", open: "pregunta abierta · IA" };
+  const typeLabels = { multi: "selección múltiple", single: "opción única", tf: "verdadero / falso", blank: "completar", open: "pregunta abierta" };
   content.innerHTML += `<div class="qtype${q.type === 'open' ? ' qtype-open' : ''}">${typeLabels[q.type]}</div>`;
   content.innerHTML += `<div class="qtext">${q.text}</div>`;
   if (q.note){
@@ -990,7 +990,7 @@ function renderResults(studentName, data, reason){
     }
   });
 
-  // Pregunta abierta: bloquear el textarea y mostrar el veredicto de la IA junto a la pregunta.
+  // Pregunta abierta: bloquear el textarea y avisar que queda guardada para revisión manual.
   const openTa = container.querySelector(`textarea[data-qid="${openQuestion.id}"]`);
   if (openTa) openTa.disabled = true;
   if (data.open){
@@ -1031,7 +1031,7 @@ function renderResults(studentName, data, reason){
     const openOk = data.open.ok;
     const openLabel = openOk === true ? "Correcta" : (openOk === false ? "Incorrecta" : "Pendiente de revisión");
     const openColor = openOk === true ? "var(--green)" : (openOk === false ? "var(--red)" : "var(--muted)");
-    html += `<div class="build-line" style="color:var(--muted); margin-top:14px; margin-bottom:4px;">Pregunta abierta (evaluada por IA, aparte del puntaje anterior):</div>`;
+    html += `<div class="build-line" style="color:var(--muted); margin-top:14px; margin-bottom:4px;">Pregunta abierta (aparte del puntaje anterior):</div>`;
     html += `<div class="build-line">Resultado: <b style="color:${openColor}">${openLabel}</b></div>`;
     if (data.open.feedback){
       html += `<div class="build-line" style="color:var(--muted); font-size:12px;">${data.open.feedback}</div>`;
