@@ -175,6 +175,36 @@
     border-radius: 4px;
     margin-bottom: 10px;
   }
+  .qtype-open{
+    color: var(--amber);
+    border-color: #ffb45444;
+    background: #ffb45411;
+  }
+  .qnote{
+    font-size: 11.5px;
+    color: var(--muted);
+    margin: -6px 0 12px;
+    font-style: italic;
+  }
+  .open-answer{
+    width: 100%;
+    background: #12131c;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13.5px;
+    padding: 10px 12px;
+    resize: vertical;
+    margin-bottom: 6px;
+  }
+  .open-answer:focus{
+    outline:none;
+    border-color: var(--amber);
+  }
+  .open-answer:disabled{
+    opacity: .75;
+  }
 
   code, .code-block{
     font-family: var(--mono);
@@ -556,7 +586,7 @@
 
 <script>
 // ---------- Datos del cuestionario ----------
-const questions = [
+const autoQuestions = [
   {
     id: "q1",
     type: "multi",
@@ -600,16 +630,16 @@ const questions = [
   {
     id: "q5",
     type: "blank",
-    text: "Completar para mostrar el segundo item del array cars.",
-    code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
+    text: "Completar para mostrar el segundo item del array cars (ya declarado como array de String).",
+    code: `<span class="cmt">// cars ya fue declarado como un array de String</span>
 System.out.println( __BLANK0__ );`,
     blanks: [ { placeholder: "cars[?]" } ]
   },
   {
     id: "q6",
     type: "blank",
-    text: 'Completar para cambiar el valor de "Volvo" por "Opel" en el array cars.',
-    code: `<span class="type">String</span>[] cars = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};
+    text: 'Completar para cambiar el valor de "Volvo" por "Opel" en el array cars (ya declarado como array de String).',
+    code: `<span class="cmt">// cars ya fue declarado como un array de String</span>
 __BLANK0__ = __BLANK1__;
 System.out.println(cars[0]);`,
     blanks: [
@@ -661,13 +691,38 @@ System.out.println(cars[0]);`,
   }
 ];
 
+// Orden aleatorio de las 10 preguntas automáticas en cada intento (no afecta
+// la corrección, que en el servidor se hace por id, no por posición).
+function shuffleArray(arr){
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+shuffleArray(autoQuestions);
+
+// Pregunta abierta: no suma al puntaje automático (X/10), se evalúa aparte
+// con IA y se muestra por separado. Va siempre al final, sin mezclarse.
+// Para cambiarla, editar "text" (el enunciado) y "rubric" (el criterio que
+// usa la IA para corregirla) — deben coincidir con lo que se define en
+// OPEN_QUESTION dentro de Code.gs.
+const openQuestion = {
+  id: "q11",
+  type: "open",
+  text: "Explicar con tus palabras qué sucede si un programa intenta acceder a una posición de un array que está fuera de su rango (por ejemplo, arreglo[10] en un array de tamaño 5). Mencionar qué tipo de error se produce.",
+  note: "Esta pregunta no suma al puntaje de las 10 anteriores. Se evalúa aparte con IA y se muestra por separado."
+};
+
+const questions = autoQuestions.concat([openQuestion]);
+
 // ---------- Configuración de guardado en Google Sheets ----------
 // Pegar aquí la URL de la Web App de Apps Script (ver instrucciones de la docente).
 const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9c6M8ONmbHFPVJY4GrwYJKz5SJpgTzia3lMIFZkUyi-_RoyfQTsoBU_K4KMgUabOH/exec";
 
 // ---------- Estado ----------
 const state = {};
-questions.forEach(q => state[q.id] = q.type === "blank" ? new Array(q.blanks.length).fill("") : null);
+questions.forEach(q => state[q.id] = q.type === "blank" ? new Array(q.blanks.length).fill("") : (q.type === "open" ? "" : null));
 let locked = false;
 
 // ---------- Render ----------
@@ -700,9 +755,12 @@ questions.forEach((q, qi) => {
   const content = document.createElement("div");
   content.className = "qcontent";
 
-  const typeLabels = { multi: "selección múltiple", single: "opción única", tf: "verdadero / falso", blank: "completar" };
-  content.innerHTML += `<div class="qtype">${typeLabels[q.type]}</div>`;
+  const typeLabels = { multi: "selección múltiple", single: "opción única", tf: "verdadero / falso", blank: "completar", open: "pregunta abierta · IA" };
+  content.innerHTML += `<div class="qtype${q.type === 'open' ? ' qtype-open' : ''}">${typeLabels[q.type]}</div>`;
   content.innerHTML += `<div class="qtext">${q.text}</div>`;
+  if (q.note){
+    content.innerHTML += `<div class="qnote">${q.note}</div>`;
+  }
 
   if (q.diagram){
     let d = '<div class="arr-diagram">';
@@ -757,6 +815,15 @@ questions.forEach((q, qi) => {
     content.appendChild(row);
   }
 
+  if (q.type === "open"){
+    const ta = document.createElement("textarea");
+    ta.className = "open-answer";
+    ta.dataset.qid = q.id;
+    ta.placeholder = "Escribir la respuesta acá…";
+    ta.rows = 4;
+    content.appendChild(ta);
+  }
+
   content.innerHTML += `<div class="hint-answer" id="hint-${q.id}"></div>`;
 
   wrap.appendChild(content);
@@ -786,6 +853,10 @@ container.addEventListener("change", (e) => {
     state[qid][bi] = target.value;
   }
 
+  if (target.matches('textarea.open-answer')) {
+    state[target.dataset.qid] = target.value;
+  }
+
   updateStatus();
 });
 
@@ -801,6 +872,7 @@ function isAnswered(q){
   if (q.type === "multi") return Array.isArray(v) && v.length > 0;
   if (q.type === "single" || q.type === "tf") return v !== null && v !== undefined;
   if (q.type === "blank") return v.every(x => x.trim().length > 0);
+  if (q.type === "open") return typeof v === "string" && v.trim().length > 0;
   return false;
 }
 
@@ -810,11 +882,11 @@ function getStudentName(){
 }
 
 function updateStatus(){
-  const answered = questions.filter(isAnswered).length;
-  document.getElementById("statusText").textContent = `${answered} / ${questions.length} respondidas`;
+  const answered = autoQuestions.filter(isAnswered).length;
+  document.getElementById("statusText").textContent = `${answered} / ${autoQuestions.length} respondidas`;
   const fill = document.getElementById("progressFill");
-  fill.style.width = (answered / questions.length * 100) + "%";
-  document.getElementById("dirtyDot").textContent = answered > 0 && answered < questions.length ? "●" : "";
+  fill.style.width = (answered / autoQuestions.length * 100) + "%";
+  document.getElementById("dirtyDot").textContent = answered > 0 && answered < autoQuestions.length ? "●" : "";
 }
 updateStatus();
 
@@ -886,7 +958,7 @@ function renderResults(studentName, data, reason){
   const resultsById = {};
   results.forEach(r => { resultsById[r.id] = r; });
 
-  questions.forEach(q => {
+  autoQuestions.forEach(q => {
     const r = resultsById[q.id];
     if (!r) return;
 
@@ -918,6 +990,18 @@ function renderResults(studentName, data, reason){
     }
   });
 
+  // Pregunta abierta: bloquear el textarea y mostrar el veredicto de la IA junto a la pregunta.
+  const openTa = container.querySelector(`textarea[data-qid="${openQuestion.id}"]`);
+  if (openTa) openTa.disabled = true;
+  if (data.open){
+    const hint = document.getElementById(`hint-${openQuestion.id}`);
+    if (hint){
+      const verdictLabel = data.open.ok === true ? "✓ Correcta" : (data.open.ok === false ? "✕ Incorrecta" : "⏳ Pendiente de revisión");
+      const verdictColor = data.open.ok === true ? "var(--green)" : (data.open.ok === false ? "var(--red)" : "var(--muted)");
+      hint.innerHTML = `<b style="color:${verdictColor}">${verdictLabel}</b>${data.open.feedback ? " — " + data.open.feedback : ""}`;
+    }
+  }
+
   document.getElementById("submitBtn").style.display = "none";
 
   const pct = score / total;
@@ -937,11 +1021,23 @@ function renderResults(studentName, data, reason){
   html += `<div class="build-line">Puntaje: <b style="color:var(--amber)">${score} / ${total}</b></div>`;
   html += `<div class="score-bar-track"><div class="score-bar-fill" id="scoreBarFill"></div></div>`;
   html += `<div class="build-line" style="color:var(--muted); margin-bottom:8px;">Detalle por pregunta:</div>`;
-  questions.forEach((q, i) => {
+  autoQuestions.forEach((q, i) => {
     const r = resultsById[q.id];
     const ok = r ? r.ok : false;
     html += `<div class="review-item ${ok ? 'ok' : 'bad'}"><span class="mark">${ok ? '✓' : '✕'}</span><span class="qname">Pregunta ${i+1}</span></div>`;
   });
+
+  if (data.open){
+    const openOk = data.open.ok;
+    const openLabel = openOk === true ? "Correcta" : (openOk === false ? "Incorrecta" : "Pendiente de revisión");
+    const openColor = openOk === true ? "var(--green)" : (openOk === false ? "var(--red)" : "var(--muted)");
+    html += `<div class="build-line" style="color:var(--muted); margin-top:14px; margin-bottom:4px;">Pregunta abierta (evaluada por IA, aparte del puntaje anterior):</div>`;
+    html += `<div class="build-line">Resultado: <b style="color:${openColor}">${openLabel}</b></div>`;
+    if (data.open.feedback){
+      html += `<div class="build-line" style="color:var(--muted); font-size:12px;">${data.open.feedback}</div>`;
+    }
+  }
+
   html += `<div class="build-line" style="color:var(--green); margin-top:12px;">Resultado guardado en la planilla.</div>`;
   html += `<div class="build-line" style="color:var(--muted); margin-top:12px; font-size:11.5px;">Este cuestionario ya fue enviado y no se puede volver a abrir.</div>`;
 
