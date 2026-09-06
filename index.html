@@ -311,6 +311,19 @@
   .blank-row input.correct{ border-color: var(--green); color: var(--green); }
   .blank-row input.incorrect{ border-color: var(--red); color: var(--red); }
 
+  /* Evitar que el autocompletado del navegador pinte los inputs de blanco */
+  .blank-row input:-webkit-autofill,
+  .blank-row input:-webkit-autofill:hover,
+  .blank-row input:-webkit-autofill:focus,
+  .fs-name-input:-webkit-autofill,
+  .fs-name-input:-webkit-autofill:hover,
+  .fs-name-input:-webkit-autofill:focus{
+    -webkit-text-fill-color: var(--amber);
+    -webkit-box-shadow: 0 0 0px 1000px var(--panel) inset;
+    box-shadow: 0 0 0px 1000px var(--panel) inset;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+
   .hint-answer{
     margin-top: 8px;
     font-size: 12px;
@@ -623,8 +636,8 @@ const autoQuestions = [
     text: "Completar para crear un array de tipo String llamado cars.",
     code: `__BLANK0__ __BLANK1__ = {<span class="str">"Volvo"</span>, <span class="str">"BMW"</span>, <span class="str">"Ford"</span>};`,
     blanks: [
-      { placeholder: "tipo" },
-      { placeholder: "nombre" }
+      { placeholder: "?" },
+      { placeholder: "?" }
     ]
   },
   {
@@ -633,7 +646,7 @@ const autoQuestions = [
     text: "Completar para mostrar el segundo item del array cars (ya declarado como array de String).",
     code: `<span class="cmt">// cars ya fue declarado como un array de String</span>
 System.out.println( __BLANK0__ );`,
-    blanks: [ { placeholder: "cars[?]" } ]
+    blanks: [ { placeholder: "?" } ]
   },
   {
     id: "q6",
@@ -643,8 +656,8 @@ System.out.println( __BLANK0__ );`,
 __BLANK0__ = __BLANK1__;
 System.out.println(cars[0]);`,
     blanks: [
-      { placeholder: "cars[?]" },
-      { placeholder: '"..."' }
+      { placeholder: "?" },
+      { placeholder: "?" }
     ]
   },
   {
@@ -718,7 +731,7 @@ const questions = autoQuestions.concat([openQuestion]);
 
 // ---------- Configuración de guardado en Google Sheets ----------
 // Pegar aquí la URL de la Web App de Apps Script (ver instrucciones de la docente).
-const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbz9c6M8ONmbHFPVJY4GrwYJKz5SJpgTzia3lMIFZkUyi-_RoyfQTsoBU_K4KMgUabOH/exec";
+const SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwsXHW4yCIFw-auL6rR475_QLzYgXx2fIQBOZg-uPkUQTuTSNM8t4SpXAkfhhmT_1Y/exec";
 
 // ---------- Estado ----------
 const state = {};
@@ -846,6 +859,15 @@ container.addEventListener("change", (e) => {
     }
     updateOptionStyles(qid);
   }
+
+  updateStatus();
+});
+
+// Texto libre (blanks y pregunta abierta): actualizar en cada tecla, no solo
+// al perder el foco, para no perder nada si se envía justo después de escribir.
+container.addEventListener("input", (e) => {
+  if (locked) return;
+  const target = e.target;
 
   if (target.matches('input[type="text"]')) {
     const qid = target.dataset.qid;
