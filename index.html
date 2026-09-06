@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
 <title>Quiz_Arrays.java</title>
 <style>
   :root{
+    color-scheme: dark;
     --bg: #16171f;
     --panel: #1d1f2b;
     --panel-2: #23253383;
@@ -22,6 +24,11 @@
     --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, "Fira Code", monospace;
   }
   *{ box-sizing:border-box; }
+  input, textarea, button{
+    -webkit-appearance: none;
+    appearance: none;
+    color-scheme: dark;
+  }
   html,body{
     margin:0; padding:0;
     background: var(--bg);
@@ -551,7 +558,7 @@
     <div class="dots" style="justify-content:center; margin-bottom:16px;"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
     <h2>Quiz_Arrays.java</h2>
     <p>Escribir nombre y apellido para comenzar. El cuestionario se abre en pantalla completa; si se sale de pantalla completa antes de terminar, se envía automáticamente con lo que esté respondido hasta ese momento.</p>
-    <input type="text" id="studentNameInput" class="fs-name-input" placeholder="Nombre y apellido" autocomplete="off" spellcheck="false">
+    <input type="text" id="studentNameInput" class="fs-name-input" placeholder="Nombre y apellido" autocomplete="new-password" autocorrect="off" autocapitalize="words" spellcheck="false">
     <button class="fs-btn" id="startBtn" disabled>Comenzar</button>
     <p class="fs-note" id="fsNote"></p>
   </div>
@@ -643,18 +650,18 @@ const autoQuestions = [
   {
     id: "q5",
     type: "blank",
-    text: "Completar para mostrar el segundo item del array cars (ya declarado como array de String).",
-    code: `<span class="cmt">// cars ya fue declarado como un array de String</span>
+    text: "Completar para mostrar el segundo item del array colores (ya declarado como array de String).",
+    code: `<span class="cmt">// colores contiene: {"Rojo", "Verde", "Azul"}</span>
 System.out.println( __BLANK0__ );`,
     blanks: [ { placeholder: "?" } ]
   },
   {
     id: "q6",
     type: "blank",
-    text: 'Completar para cambiar el valor de "Volvo" por "Opel" en el array cars (ya declarado como array de String).',
-    code: `<span class="cmt">// cars ya fue declarado como un array de String</span>
+    text: 'Completar para cambiar el valor de "Rojo" por "Amarillo" en el array colores (ya declarado como array de String).',
+    code: `<span class="cmt">// colores contiene: {"Rojo", "Verde", "Azul"}</span>
 __BLANK0__ = __BLANK1__;
-System.out.println(cars[0]);`,
+System.out.println(colores[0]);`,
     blanks: [
       { placeholder: "?" },
       { placeholder: "?" }
@@ -793,7 +800,8 @@ questions.forEach((q, qi) => {
     let codeHtml = q.code;
     if (q.type === "blank"){
       q.blanks.forEach((b, bi) => {
-        codeHtml = codeHtml.replace(`__BLANK${bi}__`, `<input type="text" data-qid="${q.id}" data-bi="${bi}" placeholder="${b.placeholder}" autocomplete="off" spellcheck="false">`);
+        const uniqueName = "f" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        codeHtml = codeHtml.replace(`__BLANK${bi}__`, `<input type="text" name="${uniqueName}" data-qid="${q.id}" data-bi="${bi}" placeholder="${b.placeholder}" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false">`);
       });
     }
     content.innerHTML += `<div class="code-block">${codeHtml}</div>`;
@@ -832,6 +840,9 @@ questions.forEach((q, qi) => {
     const ta = document.createElement("textarea");
     ta.className = "open-answer";
     ta.dataset.qid = q.id;
+    ta.name = "f" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    ta.autocomplete = "off";
+    ta.spellcheck = true;
     ta.placeholder = "Escribir la respuesta acá…";
     ta.rows = 4;
     content.appendChild(ta);
