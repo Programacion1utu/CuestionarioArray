@@ -284,7 +284,7 @@
   .option.locked.incorrect{ border-color: var(--red); background: var(--red-dim); }
   .option.locked.missed{ border-color: var(--green); background: transparent; }
 
-  .tf-row{ display:flex; gap:10px; }
+  .tf-row{ display:flex; flex-direction:row; gap:10px; }
   .tf-row .option{ flex:1; justify-content:center; }
 
   .blank-row{
@@ -830,7 +830,7 @@ questions.forEach((q, qi) => {
       optDiv.className = "option";
       optDiv.dataset.qid = q.id;
       optDiv.dataset.oid = v;
-      optDiv.innerHTML = `<input type="radio" name="${q.id}" value="${v}"><span>${v === "V" ? "Verdadero" : "Falso"}</span>`;
+      optDiv.innerHTML = `<input type="radio" name="${q.id}" value="${v}"><span>${v === "V" ? "✓ Verdadero" : "✗ Falso"}</span>`;
       row.appendChild(optDiv);
     });
     content.appendChild(row);
