@@ -924,16 +924,15 @@ function updateStatus(){
 updateStatus();
 
 // ---------- Corrección (server-side, vía Apps Script) ----------
-// Google Apps Script no manda el header de CORS de forma confiable en las
-// respuestas de POST, así que el navegador bloquea leerlas directamente.
-// Por eso se separa en dos pasos: se ENVÍAN las respuestas con "no-cors"
-// (funciona siempre, aunque no se pueda leer la respuesta), y se LEE el
-// resultado ya corregido con JSONP (un <script src="...">), que no está
-// sujeto a la política de CORS.
-function buildAnswerPayload(token){
+// Se manda TODO por GET, con las respuestas codificadas en la URL, y se lee
+// el resultado con JSONP (un <script src="...">). Se evita el POST por
+// completo: Apps Script redirige cada pedido internamente y, en ese salto,
+// algunos navegadores convierten el POST en GET y descartan el cuerpo del
+// mensaje — con GET no hay ese problema, porque no hay cuerpo que perder.
+function buildAnswerPayload(){
   const answers = {};
   questions.forEach(q => { answers[q.id] = state[q.id]; });
-  return { nombre: getStudentName(), answers, token };
+  return { nombre: getStudentName(), answers };
 }
 
 function showGradingError(retryLabel){
@@ -946,36 +945,37 @@ function showGradingError(retryLabel){
   statusText.style.color = "var(--red)";
 }
 
-function pollForResult(token, studentName, reason, attempt){
-  if (attempt > 25) {
+function submitViaJsonp(payload, studentName, reason, attempt){
+  if (attempt > 4) {
     document.getElementById("autoSubmitOverlay").style.display = "none";
     showGradingError(reason === "fullscreen-exit" ? "Reintentar envío" : "Reintentar corrección");
     return;
   }
-  const callbackName = "quizCb_" + token;
+  const callbackName = "quizSubmitCb_" + Date.now().toString(36) + Math.random().toString(36).slice(2);
   const script = document.createElement("script");
   let done = false;
   window[callbackName] = function(data){
     done = true;
     delete window[callbackName];
     script.remove();
-    if (data) {
+    if (data && typeof data.score === "number") {
       locked = true;
       quizFinished = true;
       try { localStorage.setItem("quizArraysSubmitted", "1"); } catch (e) {}
       document.getElementById("autoSubmitOverlay").style.display = "none";
       renderResults(studentName, data, reason);
     } else {
-      setTimeout(() => pollForResult(token, studentName, reason, attempt + 1), 800);
+      setTimeout(() => submitViaJsonp(payload, studentName, reason, attempt + 1), 1200);
     }
   };
   script.onerror = function(){
     if (done) return;
     delete window[callbackName];
     script.remove();
-    setTimeout(() => pollForResult(token, studentName, reason, attempt + 1), 800);
+    setTimeout(() => submitViaJsonp(payload, studentName, reason, attempt + 1), 1200);
   };
-  script.src = SHEET_WEBAPP_URL + "?action=result&token=" + encodeURIComponent(token) + "&callback=" + callbackName;
+  const encodedPayload = encodeURIComponent(JSON.stringify(payload));
+  script.src = SHEET_WEBAPP_URL + "?action=submit&payload=" + encodedPayload + "&callback=" + callbackName;
   document.body.appendChild(script);
 }
 
@@ -996,19 +996,8 @@ function performSubmit(reason){
   }
 
   const studentName = getStudentName();
-  const token = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2);
-  const payload = buildAnswerPayload(token);
-
-  const formBody = new URLSearchParams({ payload: JSON.stringify(payload) });
-
-  fetch(SHEET_WEBAPP_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: formBody.toString()
-  }).catch(() => { /* con no-cors casi nunca rechaza; si pasa, el poll de abajo igual reintenta */ });
-
-  setTimeout(() => pollForResult(token, studentName, reason, 0), 600);
+  const payload = buildAnswerPayload();
+  submitViaJsonp(payload, studentName, reason, 0);
 }
 
 document.getElementById("submitBtn").addEventListener("click", () => performSubmit("manual"));
