@@ -275,6 +275,7 @@ volver a pegarla en el HTML (y volver a publicar el HTML).
 ## Estructura del proyecto
 
 ```
+Codigo.gs          #script de google apps
 quiz-arrays.html   # Cuestionario (sin la clave de respuestas)
 README.md          # Este archivo
 ```
