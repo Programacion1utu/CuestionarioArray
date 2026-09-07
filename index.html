@@ -999,11 +999,13 @@ function performSubmit(reason){
   const token = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2);
   const payload = buildAnswerPayload(token);
 
+  const formBody = new URLSearchParams({ payload: JSON.stringify(payload) });
+
   fetch(SHEET_WEBAPP_URL, {
     method: "POST",
     mode: "no-cors",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload)
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: formBody.toString()
   }).catch(() => { /* con no-cors casi nunca rechaza; si pasa, el poll de abajo igual reintenta */ });
 
   setTimeout(() => pollForResult(token, studentName, reason, 0), 600);
