@@ -924,21 +924,16 @@ function updateStatus(){
 updateStatus();
 
 // ---------- Corrección (server-side, vía Apps Script) ----------
-function buildAnswerPayload(){
+// Google Apps Script no manda el header de CORS de forma confiable en las
+// respuestas de POST, así que el navegador bloquea leerlas directamente.
+// Por eso se separa en dos pasos: se ENVÍAN las respuestas con "no-cors"
+// (funciona siempre, aunque no se pueda leer la respuesta), y se LEE el
+// resultado ya corregido con JSONP (un <script src="...">), que no está
+// sujeto a la política de CORS.
+function buildAnswerPayload(token){
   const answers = {};
   questions.forEach(q => { answers[q.id] = state[q.id]; });
-  return { nombre: getStudentName(), answers };
-}
-
-function submitForGrading(payload){
-  return fetch(SHEET_WEBAPP_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload)
-  }).then(r => {
-    if (!r.ok) throw new Error("bad-response");
-    return r.json();
-  });
+  return { nombre: getStudentName(), answers, token };
 }
 
 function showGradingError(retryLabel){
@@ -949,6 +944,39 @@ function showGradingError(retryLabel){
   const statusText = document.getElementById("statusText");
   statusText.textContent = "No se pudo conectar para corregir. Verificar conexión a internet e intentar nuevamente.";
   statusText.style.color = "var(--red)";
+}
+
+function pollForResult(token, studentName, reason, attempt){
+  if (attempt > 25) {
+    document.getElementById("autoSubmitOverlay").style.display = "none";
+    showGradingError(reason === "fullscreen-exit" ? "Reintentar envío" : "Reintentar corrección");
+    return;
+  }
+  const callbackName = "quizCb_" + token;
+  const script = document.createElement("script");
+  let done = false;
+  window[callbackName] = function(data){
+    done = true;
+    delete window[callbackName];
+    script.remove();
+    if (data) {
+      locked = true;
+      quizFinished = true;
+      try { localStorage.setItem("quizArraysSubmitted", "1"); } catch (e) {}
+      document.getElementById("autoSubmitOverlay").style.display = "none";
+      renderResults(studentName, data, reason);
+    } else {
+      setTimeout(() => pollForResult(token, studentName, reason, attempt + 1), 800);
+    }
+  };
+  script.onerror = function(){
+    if (done) return;
+    delete window[callbackName];
+    script.remove();
+    setTimeout(() => pollForResult(token, studentName, reason, attempt + 1), 800);
+  };
+  script.src = SHEET_WEBAPP_URL + "?action=result&token=" + encodeURIComponent(token) + "&callback=" + callbackName;
+  document.body.appendChild(script);
 }
 
 function performSubmit(reason){
@@ -968,18 +996,17 @@ function performSubmit(reason){
   }
 
   const studentName = getStudentName();
-  const payload = buildAnswerPayload();
+  const token = "t" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const payload = buildAnswerPayload(token);
 
-  submitForGrading(payload).then(data => {
-    locked = true;
-    quizFinished = true;
-    try { localStorage.setItem("quizArraysSubmitted", "1"); } catch (e) {}
-    document.getElementById("autoSubmitOverlay").style.display = "none";
-    renderResults(studentName, data, reason);
-  }).catch(() => {
-    document.getElementById("autoSubmitOverlay").style.display = "none";
-    showGradingError(reason === "fullscreen-exit" ? "Reintentar envío" : "Reintentar corrección");
-  });
+  fetch(SHEET_WEBAPP_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  }).catch(() => { /* con no-cors casi nunca rechaza; si pasa, el poll de abajo igual reintenta */ });
+
+  setTimeout(() => pollForResult(token, studentName, reason, 0), 600);
 }
 
 document.getElementById("submitBtn").addEventListener("click", () => performSubmit("manual"));
